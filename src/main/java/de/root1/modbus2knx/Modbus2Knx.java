@@ -48,9 +48,14 @@ public final class Modbus2Knx {
     private Knx knx;
 
     ModbusConnection modbus;
-    Properties configdata;
+    Properties configdataProperties;
 
-    byte modbusAddress = 0x01;
+    byte modbusSlaveAddress = 0x01;
+    
+    private final String host;
+    private final int port;
+
+    
     private String knxpa;
 
     public static int nthOccurrence(String str, String c, int n) {
@@ -61,28 +66,38 @@ public final class Modbus2Knx {
         }
         return pos;
     }
+    private final int soTimeout;
 
     public Modbus2Knx(String file) throws IOException, InterruptedException, KnxException {
 
         List<Datapoint> dpts = new ArrayList<>();
 
         File f = new File(file);
-        configdata = new Properties();
-        configdata.load(new FileInputStream(f));
+        configdataProperties = new Properties();
+        configdataProperties.load(new FileInputStream(f));
+        
+        host = configdataProperties.getProperty("modbus.tcp.host", "localhost");
+        port = Integer.parseInt(configdataProperties.getProperty("modbus.tcp.port", "8899"));
+        modbusSlaveAddress = (byte)(Integer.parseInt(configdataProperties.getProperty("modbus.slaveaddress", "1"))&0xFF);
+        knxpa = configdataProperties.getProperty("knx.individualadress", "1.1.1");
+        soTimeout = Integer.parseInt(configdataProperties.getProperty("modbus.tcp.sockettimeout", "0"));
+        
+        log.info("Settings: knx.ia={} host={} port={} modbusSlaveAddr={}", knxpa, host, port, modbusSlaveAddress);
 
-        Iterator<Object> iterator = configdata.keySet().iterator();
+        Iterator<Object> iterator = configdataProperties.keySet().iterator();
         while (iterator.hasNext()) {
             String key = (String) iterator.next();
-            String value = (String) configdata.get(key);
+            String value = (String) configdataProperties.get(key);
             key = key.trim();
             value = value.trim();
 
             if (key.startsWith("functioncode")) {
-
-            } else if (key.startsWith("knx.pa")) {
-                knxpa = value;
-                log.debug("KNX Device Address: {}", knxpa);
-            } else {
+                // skip here
+            } else if (key.startsWith("knx")) {
+                // skip here
+            } else if (key.startsWith("modbus")) {
+                // skip here
+            }else {
 
                 Datapoint dpt = new Datapoint();
 
@@ -121,7 +136,7 @@ public final class Modbus2Knx {
                             dpt.setReadWrite(ReadWrite.valueOf(value));
                             break;
                         case "knx":
-                            dpt.parseKnxDataFromProperties(configdata);
+                            dpt.parseKnxDataFromProperties(configdataProperties);
                             break;
                         default:
                             key = key.substring(nthOccurrence(key, ".", 2) + 1);
@@ -150,7 +165,7 @@ public final class Modbus2Knx {
         // -----------------------
         // Modbus Connection 
         // -----------------------
-        modbus = new ModbusConnection("hs4", 4002, modbusAddress, configdata);
+        modbus = new ModbusConnection(host, port, soTimeout, modbusSlaveAddress, configdataProperties);
 
         // -----------------------
         // KNX Connection
@@ -316,7 +331,7 @@ public final class Modbus2Knx {
 
     static {
         String property = System.getProperty("java.util.logging.config.file");
-        File logconfig = new File("./logging.properties");
+        File logconfig = new File("logging.properties");
         if (property == null && logconfig.isFile() && logconfig.exists()) {
             System.out.println("Use automatic log config based on " + logconfig.getAbsolutePath());
             System.setProperty("java.util.logging.config.file", logconfig.getAbsolutePath());

@@ -23,7 +23,7 @@ import java.util.Objects;
 import java.util.Properties;
 
 /**
- *
+ * Modbus&Knx DataPoint
  * @author achristian
  */
 public class Datapoint {
@@ -35,7 +35,7 @@ public class Datapoint {
     private CoilReg coilReg;
     private ReadWrite readWrite;
     private KnxData knxData;
-    private Properties properties = new Properties();
+    private final Properties properties = new Properties();
 
     @Override
     public int hashCode() {

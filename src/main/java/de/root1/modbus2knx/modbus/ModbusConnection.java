@@ -38,25 +38,19 @@ import org.slf4j.LoggerFactory;
 public class ModbusConnection {
 
     private static final Logger log = LoggerFactory.getLogger(ModbusConnection.class);
-    
+
     private Socket s;
     private InputStream inputStream;
     private OutputStream outputStream;
     private boolean isConnected = false;
     private final Timer timer = new Timer("ReconnectTimer", true);
 
-    /**
-     * Eigene ModBus Adresse als "Absender". Die Response muss die gleiche
-     * Adresse aufweisen.
-     */
-    private byte ownAddress = 1;
     private long lastSend;
 
     private final String host;
     private final int port;
     /**
-     * Expected properties:
-     * functioncode.digital.read-coils
+     * Expected properties: functioncode.digital.read-coils
      * functioncode.digital.read-discrete-inputs
      * functioncode.analog.read-holding-register
      * functioncode.analog.read-input-register
@@ -64,13 +58,16 @@ public class ModbusConnection {
      * functioncode.analog.write-single-register
      */
     private final Properties configdata;
+    private final byte modbusSlaveAddress;
+    private final int soTimeout;
 
-    public ModbusConnection(String host, int port, byte ownownAddress, Properties configdata) throws IOException {
+    public ModbusConnection(String host, int port, int soTimeout, byte modbusSlaveAddress, Properties configdata) throws IOException {
         this.host = host;
         this.port = port;
-        this.ownAddress = ownownAddress;
+        this.soTimeout = soTimeout;
+        this.modbusSlaveAddress = modbusSlaveAddress;
         this.configdata = configdata;
-        
+
         connect();
 
     }
@@ -93,9 +90,9 @@ public class ModbusConnection {
         System.arraycopy(t.getData(), 0, telegram, 2, t.getData().length);
 
         crc = crc16(telegram);
-        long waitTimeout=30000;
+        long waitTimeout = 30000;
         long start = System.currentTimeMillis();
-        while (!isConnected && ((System.currentTimeMillis()-start)<waitTimeout)) {
+        while (!isConnected && ((System.currentTimeMillis() - start) < waitTimeout)) {
             try {
                 log.debug("Waiting for connection ...");
                 Thread.sleep(1000);
@@ -112,7 +109,6 @@ public class ModbusConnection {
 
         log.debug("Sending: {} CRC: {}", Arrays.toString(telegram), Arrays.toString(crc));
 
-        
         if (System.currentTimeMillis() - lastSend < 2) {
             log.debug("Sleep to discharge modbus connection");
             try {
@@ -121,30 +117,63 @@ public class ModbusConnection {
             }
             log.debug("Sleep done");
         }
-        
+
         outputStream.write(telegram);
         outputStream.write(crc);
         outputStream.flush();
         lastSend = System.currentTimeMillis();
 
-        int soTimeout = s.getSoTimeout();
-        s.setSoTimeout(10000);
         
-        ModbusTelegram result=null;
-        int loop=0;
-            while (result==null && loop<5) { // try to get result max. 5 times
-                try {
-                    log.debug("Waiting for telegram ...");
-                    int address = inputStream.read();
-                    if (address == -1) {
-                        log.debug("Got -1 while reading address. disconnected.");
-                        throw new IOException("End of stream reached while reading address");
-                    }
-                    int function = inputStream.read();
-                    if (function == -1) {
-                        log.debug("Got -1 while reading function. disconnected.");
-                        throw new IOException("End of stream reached while reading function");
-                    }
+        
+
+        ModbusTelegram result = null;
+        int loop = 0;
+        while (result == null && loop < 5) { // try to get result max. 5 times
+            try {
+                log.debug("Waiting for telegram ...");
+                int modbusResponseSlaveAddr = inputStream.read();
+                if (modbusResponseSlaveAddr == -1) {
+                    log.debug("Got -1 while reading address. disconnected.");
+                    throw new IOException("End of stream reached while reading address");
+                }
+                int function = inputStream.read();
+                if (function == -1) {
+                    log.debug("Got -1 while reading function. disconnected.");
+                    throw new IOException("End of stream reached while reading function");
+                }
+
+                if (function == 5 /* write single coil */) {
+                    
+                    log.debug("is functioncode 5 response");
+                    // read address, 2 bytes
+                    int addrHi = inputStream.read();
+                    int addrLo = inputStream.read();
+                    
+                    int valueHi= inputStream.read();
+                    int valueLo= inputStream.read();
+                    
+                    byte[] crcResult = readCrc();
+                    
+                    // crc check
+                        byte[] tg = new byte[1 + 1 + 2 + 2];
+                        tg[0] = (byte) (modbusResponseSlaveAddr & 0xFF);
+                        tg[1] = (byte) (function & 0xFF);
+                        tg[2] = (byte) (addrHi & 0xFF);
+                        tg[3] = (byte) (addrLo & 0xFF);
+                        tg[4] = (byte) (valueHi & 0xFF);
+                        tg[5] = (byte) (valueLo & 0xFF);
+
+                        byte[] crcCheck = crc16(tg);
+                        log.debug("End of telegram. crc ={}", Arrays.toString(crc));
+
+                        boolean crcOkay = Arrays.equals(crcResult, crcCheck);
+
+                        if (modbusResponseSlaveAddr == modbusSlaveAddress && crcOkay) {
+                            return new ModbusTelegram(modbusResponseSlaveAddr, function, new byte[]{(byte)addrHi, (byte)addrLo, (byte)valueHi, (byte)valueLo});
+                        }
+                    
+
+                } else {
                     int datasize = inputStream.read();
                     if (datasize == -1) {
                         log.debug("Got -1 while reading datasize. disconnected.");
@@ -152,7 +181,7 @@ public class ModbusConnection {
                     }
 
                     log.debug("Response: ");
-                    log.debug("Address: {}", Integer.toHexString(address));
+                    log.debug("Address: {}", Integer.toHexString(modbusResponseSlaveAddr));
                     log.debug("Function: {}", Integer.toHexString(function));
                     log.debug("datasize: {}", datasize);
 
@@ -172,14 +201,11 @@ public class ModbusConnection {
                             log.debug(" data[{}]: {}", i, String.format("0x%02x", data[i]));
                         }
 
-                        byte[] crcResult = new byte[2];
-
-                        crcResult[0] = (byte) (inputStream.read() & 0xff);
-                        crcResult[1] = (byte) (inputStream.read() & 0xff);
+                        byte[] crcResult = readCrc();
 
                         // crc check
                         byte[] tg = new byte[1 + 1 + 1 + datasize];
-                        tg[0] = (byte) (address & 0xFF);
+                        tg[0] = (byte) (modbusResponseSlaveAddr & 0xFF);
                         tg[1] = (byte) (function & 0xFF);
                         tg[2] = (byte) (datasize & 0xFF);
                         System.arraycopy(data, 0, tg, 3, datasize);
@@ -189,46 +215,55 @@ public class ModbusConnection {
 
                         boolean crcOkay = Arrays.equals(crcResult, crcCheck);
 
-                        if (address == ownAddress && crcOkay) {
+                        if (modbusResponseSlaveAddr == modbusSlaveAddress && crcOkay) {
                             log.debug("Finished reading response...CRC okay? -> {}", crcOkay);
-                            result = new ModbusTelegram(address, function, data);
+                            result = new ModbusTelegram(modbusResponseSlaveAddr, function, data);
                         } else if (!crcOkay) {
                             log.warn("CRC Error: crc read: {} crc calculated: {}", Arrays.toString(crcResult), Arrays.toString(crcCheck));
                             result = new ModbusTelegram(-1, -1, new byte[]{});
                             throw new IOException("CRC error happened.");
                         }
                     }
-
-                } catch (IOException ex) {
-                    ex.printStackTrace();
-                    log.warn("Error occured. Triggering disconnect+connect");
-                    disconnect();
-                    TimerTask tt = new TimerTask() {
-
-                        @Override
-                        public void run() {
-                            try {
-                                connect();
-                            } catch (IOException ex1) {
-                                ex1.printStackTrace();
-                            }
-                        }
-                    };
-                    log.warn("scheduled reconnect ...");
-                    timer.schedule(tt, 5000);
                 }
-                loop++;
-            }
-            
-            s.setSoTimeout(soTimeout);
 
-            if (result!=null && !result.isValid()) {
-                result = null;
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                log.warn("Error occured. Triggering disconnect+connect");
+                disconnect();
+                TimerTask tt = new TimerTask() {
+
+                    @Override
+                    public void run() {
+                        try {
+                            connect();
+                        } catch (IOException ex1) {
+                            ex1.printStackTrace();
+                        }
+                    }
+                };
+                log.warn("scheduled reconnect ...");
+                timer.schedule(tt, 5000);
             }
-            
+            loop++;
+        }
+
+        s.setSoTimeout(soTimeout);
+
+        if (result != null && !result.isValid()) {
+            result = null;
+        }
+
         log.debug("returning: " + result);
         return result;
 
+    }
+        
+    private byte[] readCrc() throws IOException {
+        byte[] crcResult = new byte[2];
+
+        crcResult[0] = (byte) (inputStream.read() & 0xff);
+        crcResult[1] = (byte) (inputStream.read() & 0xff);
+        return crcResult;
     }
 
     private byte[] crc16(byte[] bytes) {
@@ -272,21 +307,25 @@ public class ModbusConnection {
     private void connect() throws IOException {
         s = new Socket(host, port);
         s.setTcpNoDelay(true);
-        inputStream = new BufferedInputStream(s.getInputStream());
-        outputStream = new BufferedOutputStream(s.getOutputStream());
-        log.info("Connected!");
+        
+        s.setSoTimeout(soTimeout);
+        log.info("New Timeout: {}", s.getSoTimeout());
+        
+        inputStream = s.getInputStream();
+        outputStream = s.getOutputStream();
+        log.info("Connected to {}:{}!", host, port);
         isConnected = true;
     }
 
     public double readFloat16bit(int addr) throws IOException {
 
-        log.debug("Read ModBus float16: " + addr);
+        log.debug("Read ModBus float16 @ " + addr);
 
         byte addrHigh = (byte) ((addr >>> 8) & 0xFF);
         byte addrLow = (byte) ((addr >>> 0) & 0xFF);
 
         ModbusTelegram response = sendTelegram(
-                new ModbusTelegram(ownAddress, Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3")),
+                new ModbusTelegram(modbusSlaveAddress, Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3")),
                         new byte[]{addrHigh, addrLow, 0x00, 0x01}));
 
         if (response == null) {
@@ -304,12 +343,12 @@ public class ModbusConnection {
     }
 
     public int readUnsigned16bit(int address) throws IOException {
-        log.debug("Read ModBus uint16: " + address);
+        log.debug("Read ModBus uint16 @ " + address);
         byte addrHigh = (byte) ((address >>> 8) & 0xFF);
         byte addrLow = (byte) ((address >>> 0) & 0xFF);
 
         ModbusTelegram response = sendTelegram(
-                new ModbusTelegram(ownAddress, Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3")),
+                new ModbusTelegram(modbusSlaveAddress, Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3")),
                         new byte[]{addrHigh, addrLow, 0x00, 0x01}));
 
         if (response == null) {
@@ -327,12 +366,12 @@ public class ModbusConnection {
     }
 
     public boolean readBoolean(int address) throws IOException {
-        log.debug("Read ModBus Boolean: " + address);
+        log.debug("Read ModBus Boolean @ " + address);
         byte addrHigh = (byte) ((address >>> 8) & 0xFF);
         byte addrLow = (byte) ((address >>> 0) & 0xFF);
 
         ModbusTelegram response = sendTelegram(
-                new ModbusTelegram(ownAddress, Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1")),
+                new ModbusTelegram(modbusSlaveAddress, Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1")),
                         new byte[]{addrHigh, addrLow, 0x00, 0x01}));
 
         if (response == null) {
@@ -343,6 +382,25 @@ public class ModbusConnection {
 
         log.debug("Read ModBus Boolean: " + address + " -> " + (data[0] == 1));
         return data[0] == 1;
+    }
+
+    // http://www.modbus.org/docs/Modbus_Application_Protocol_V1_1b.pdf
+    public void writeBoolean(int address, boolean bool) throws IOException {
+        log.debug("Write ModBus Boolean: " + address + " -> " + bool);
+        byte addrHigh = (byte) ((address >>> 8) & 0xFF);
+        byte addrLow = (byte) ((address >>> 0) & 0xFF);
+
+        ModbusTelegram request = new ModbusTelegram(modbusSlaveAddress, Integer.parseInt(configdata.getProperty("functioncode.digital.write-single-coil", "5")),
+                new byte[]{addrHigh, addrLow,
+                    (bool ? (byte) 0xFF : (byte) 0x00),
+                    0x00,});
+
+        ModbusTelegram response = sendTelegram(request);
+
+        if (!request.equals(response)) {
+            throw new IOException("Response contains error");
+        }
+
     }
 
 }

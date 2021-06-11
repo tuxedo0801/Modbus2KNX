@@ -79,6 +79,36 @@ public class ModbusTelegram {
     public String toString() {
         return "ModbusTelegram{" + "address=" + address + ", function=" + function + ", data=" + Arrays.toString(data) + '}';
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 59 * hash + this.address;
+        hash = 59 * hash + this.function;
+        hash = 59 * hash + Arrays.hashCode(this.data);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final ModbusTelegram other = (ModbusTelegram) obj;
+        if (this.address != other.address) {
+            return false;
+        }
+        if (this.function != other.function) {
+            return false;
+        }
+        if (!Arrays.equals(this.data, other.data)) {
+            return false;
+        }
+        return true;
+    }
     
     
 
