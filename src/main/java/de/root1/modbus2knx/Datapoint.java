@@ -31,39 +31,18 @@ public class Datapoint {
     private String group;
     private String name;
     private int address;
+    private int numberOfInputs;
     private Type type;
-    private CoilReg coilReg;
-    private ReadWrite readWrite;
     private KnxData knxData;
     private final Properties properties = new Properties();
 
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 19 * hash + Objects.hashCode(this.group);
-        hash = 19 * hash + Objects.hashCode(this.name);
-        return hash;
+    public int getNumberOfInputs() {
+        return numberOfInputs;
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Datapoint other = (Datapoint) obj;
-        if (!Objects.equals(this.group, other.group)) {
-            return false;
-        }
-        if (!Objects.equals(this.name, other.name)) {
-            return false;
-        }
-        return true;
+    public void setNumberOfInputs(int numberOfInputs) {
+        this.numberOfInputs = numberOfInputs;
     }
-
-    
 
     public String getGroup() {
         return group;
@@ -95,14 +74,6 @@ public class Datapoint {
 
     public void setType(Type type) {
         this.type = type;
-    }
-
-    public ReadWrite getReadWrite() {
-        return readWrite;
-    }
-
-    public void setReadWrite(ReadWrite readWrite) {
-        this.readWrite = readWrite;
     }
 
     public KnxData getKnxData() {
@@ -150,11 +121,6 @@ public class Datapoint {
         return getKnxData()!=null && getKnxData().dpt!=null && getKnxData().ga.size()>0;
     }
 
-    @Override
-    public String toString() {
-        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + address + ", type=" + type + ", coilReg=" + coilReg + ", readWrite=" + readWrite + ", knxData=" + knxData + '}';
-    }
-
     void addProperty(String key, String value) {
         properties.put(key, value);
     }
@@ -167,5 +133,42 @@ public class Datapoint {
         return properties;
     }
 
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 29 * hash + Objects.hashCode(this.group);
+        hash = 29 * hash + Objects.hashCode(this.name);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Datapoint other = (Datapoint) obj;
+        if (!Objects.equals(this.group, other.group)) {
+            return false;
+        }
+        if (!Objects.equals(this.name, other.name)) {
+            return false;
+        }
+        return true;
+    }
+
+    
+
+    @Override
+    public String toString() {
+        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + address + ", numberOfInputs=" + numberOfInputs + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + '}';
+    }
+
+    
     
 }

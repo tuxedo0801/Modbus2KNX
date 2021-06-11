@@ -44,17 +44,18 @@ public class WatchContainer {
     public boolean hasChanged() throws IOException {
         
         int address = datapoint.getAddress();
+        int numberOfInputs = datapoint.getNumberOfInputs();
         Object x = null;
         log.debug("Checking if {} has changed", datapoint.getName());
         switch(datapoint.getType()) {
             case bool:
-                x = modbus.readBoolean(address);
+                x = modbus.readBoolean(address, numberOfInputs);
                 break;
             case float16bit:
-                x = modbus.readFloat16bit(address);
+                x = modbus.readFloat16bit(address, numberOfInputs);
                 break;
             case unsigned16bit:
-                x = modbus.readUnsigned16bit(address);
+                x = modbus.readUnsigned16bit(address, numberOfInputs);
                 break;
         }
         if (x!=null && !x.equals(value)) {
