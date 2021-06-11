@@ -129,9 +129,6 @@ public final class Modbus2Knx {
                             dpt.setType(Type.valueOf(value));
                             log.debug("Setting type: " + dpt);
                             break;
-                        case "coilreg":
-                            dpt.setCoilReg(CoilReg.valueOf(value));
-                            break;
                         case "readwrite":
                             dpt.setReadWrite(ReadWrite.valueOf(value));
                             break;

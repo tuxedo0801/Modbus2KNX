@@ -97,14 +97,6 @@ public class Datapoint {
         this.type = type;
     }
 
-    public CoilReg getCoilReg() {
-        return coilReg;
-    }
-
-    public void setCoilReg(CoilReg coilReg) {
-        this.coilReg = coilReg;
-    }
-
     public ReadWrite getReadWrite() {
         return readWrite;
     }
