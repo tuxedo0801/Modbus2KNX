@@ -19,6 +19,7 @@
 package de.root1.modbus2knx;
 
 import de.root1.modbus2knx.modbus.ModbusConnection;
+import de.root1.modbus2knx.modbus.ModbusException;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public class WatchContainer {
         this.modbus = modbus;
     }
     
-    public boolean hasChanged() throws IOException {
+    public boolean hasChanged() throws ModbusException {
         
         int address = datapoint.getAddress();
         int numberOfInputs = datapoint.getNumberOfInputs();

@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * @author alexander
  */
 public class ModbusRequest {
-    
+
     private static final org.slf4j.Logger log = LoggerFactory.getLogger(ModbusRequest.class);
 
     private final byte slaveAddress;
@@ -27,23 +27,25 @@ public class ModbusRequest {
     private ModbusResponse response;
     private final ModbusConnection app;
 
+    private static final int RESPONSE_WAIT_TIMEOUT = 10 + 1000;
+
     /**
-     * 
+     *
      * @param slaveAddress
      * @param function
      * @param startAddress Modbus protocol start address (hex)
      * @param numberOfPoints
-     * @throws IOException 
+     * @throws IOException
      */
-    public ModbusRequest(ModbusConnection app, byte slaveAddress, byte function, int startAddress, int numberOfPoints) throws IOException {
+    public ModbusRequest(ModbusConnection app, byte slaveAddress, byte function, int startAddress, int numberOfPoints) {
         this.app = app;
         this.slaveAddress = slaveAddress;
         this.function = function;
         this.startAddress = startAddress;
         this.numberOfPoints = numberOfPoints;
     }
-    
-    public void send(OutputStream outputstream) throws IOException {
+
+    public void send(OutputStream outputstream) throws IOException, ModbusException {
         byte[] msg = new byte[8];
         msg[0] = slaveAddress;
         msg[1] = function;
@@ -53,7 +55,7 @@ public class ModbusRequest {
         msg[5] = (byte) (numberOfPoints & 0xFF);
         insertCRC(msg);
         for (byte b : msg) {
-            log.debug(" => {}",String.format("%02X", b));
+            log.debug(" => {}", String.format("%02X", b));
         }
         log.debug(" *DONE*");
         // modbus safety wait before
@@ -69,17 +71,21 @@ public class ModbusRequest {
         } catch (InterruptedException ex) {
         }
         List<ModbusResponse> responses = app.getResponses();
-        synchronized(responses) {
+        synchronized (responses) {
+            long start = System.currentTimeMillis();
             while (responses.isEmpty()) {
                 try {
                     responses.wait(10);
                 } catch (InterruptedException ex) {
                 }
+                if (System.currentTimeMillis() - start > RESPONSE_WAIT_TIMEOUT) {
+                    throw new ModbusException("Timeout while waiting for response after send");
+                }
             }
             if (!responses.isEmpty()) {
                 response = responses.remove(0);
             }
-            
+
         }
     }
 
@@ -113,13 +119,18 @@ public class ModbusRequest {
 
     /**
      * Blocks until response is present!
-     * @return 
+     *
+     * @return
      */
-    public ModbusResponse getResponse() {
-        while (response==null) {
+    public ModbusResponse getResponse() throws ModbusException {
+        long start = System.currentTimeMillis();
+        while (response == null) {
             try {
                 Thread.currentThread().sleep(100);
             } catch (InterruptedException ex) {
+            }
+            if (System.currentTimeMillis() - start > RESPONSE_WAIT_TIMEOUT) {
+                throw new ModbusException("Timeout while waiting for response");
             }
         }
         return response;
@@ -128,7 +139,5 @@ public class ModbusRequest {
     public void setResponse(ModbusResponse response) {
         this.response = response;
     }
-    
-    
 
 }

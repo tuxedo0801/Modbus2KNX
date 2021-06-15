@@ -46,7 +46,6 @@ public class ModbusConnection {
     private final Timer timer = new Timer("ReconnectTimer", true);
 
     private long lastSend;
-    
 
     private final String host;
     private final int port;
@@ -61,7 +60,7 @@ public class ModbusConnection {
     private final Properties configdata;
     private final byte modbusSlaveAddress;
     private final int soTimeout;
-    
+
     final List<ModbusResponse> responses = new ArrayList<>();
 
     public ModbusConnection(String host, int port, int soTimeout, byte modbusSlaveAddress, Properties configdata) throws IOException {
@@ -111,7 +110,6 @@ public class ModbusConnection {
 //        crcBytes[1] = (byte) ((crc & 0xFF00) / 256);
 //        return crcBytes;
 //    }
-
     public synchronized void disconnect() {
         log.info("Closing connection ...");
         isConnected = false;
@@ -126,17 +124,17 @@ public class ModbusConnection {
     }
 
     private void connect() throws IOException {
-        
+
         s = new Socket(host, port);
         s.setSoTimeout(soTimeout);
         log.info("New Timeout: {}", s.getSoTimeout());
-        
+
         inputStream = s.getInputStream();
         outputStream = s.getOutputStream();
         log.info("Connected to {}:{}!", host, port);
         isConnected = true;
-        
-        Thread t = new Thread() {
+
+        Thread t = new Thread("Modbus Response Read Thread"){
             @Override
             public void run() {
                 while (!interrupted()) {
@@ -163,15 +161,19 @@ public class ModbusConnection {
         t.start();
     }
 
-    public double readFloat16bit(int addr, int numberOfInputs) throws IOException {
+    public double readFloat16bit(int addr, int numberOfInputs) throws ModbusException {
 
         log.debug("Read ModBus float16 @ " + addr);
-        
-        byte function = (byte)Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
-        
-        ModbusRequest request = new ModbusRequest(this, modbusSlaveAddress, function, addr, numberOfInputs);
-        request.send(outputStream);
-        ModbusResponse resp = request.getResponse();
+
+        byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
+
+        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, addr, numberOfInputs);
+        try {
+            req.send(outputStream);
+        } catch (IOException ex) {
+            throw new ModbusException("Error while sending request", ex);
+        }
+        ModbusResponse resp = req.getResponse();
         if (resp.crcCheck()) {
             float v = resp.getFloat16();
             return v;
@@ -181,36 +183,43 @@ public class ModbusConnection {
 
     }
 
-    public int readUnsigned16bit(int address, int numberOfInputs) throws IOException {
+    public int readUnsigned16bit(int address, int numberOfInputs) throws ModbusException {
         log.debug("Read ModBus uint16 @ " + address);
-        byte function = (byte)Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
+        byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
         ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
-        req.send(outputStream);
+        try {
+            req.send(outputStream);
+        } catch (IOException ex) {
+            throw new ModbusException("Error while sending request", ex);
+        }
         ModbusResponse resp = req.getResponse();
-        
+
         if (resp.crcCheck()) {
             return resp.getUint16();
         } else {
             return -1;
         }
-        
+
     }
 
-    public boolean readBoolean(int address, int numberOfInputs) throws IOException {
-        
+    public boolean readBoolean(int address, int numberOfInputs) throws ModbusException {
+
         log.debug("Read ModBus Boolean @ " + address);
-        
-        byte function = (byte)Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1"));
+
+        byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1"));
         ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
-        req.send(outputStream);
+        try {
+            req.send(outputStream);
+        } catch (IOException ex) {
+            throw new ModbusException("Error while sending request", ex);
+        }
         ModbusResponse resp = req.getResponse();
-        
         if (resp.crcCheck()) {
             return resp.getBoolean();
         } else {
             return false;
         }
-        
+
     }
 
 }

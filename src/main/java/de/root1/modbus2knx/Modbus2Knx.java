@@ -19,6 +19,7 @@
 package de.root1.modbus2knx;
 
 import de.root1.modbus2knx.modbus.ModbusConnection;
+import de.root1.modbus2knx.modbus.ModbusException;
 import de.root1.slicknx.GroupAddressEvent;
 import de.root1.slicknx.GroupAddressListener;
 import de.root1.slicknx.Knx;
@@ -238,7 +239,7 @@ public final class Modbus2Knx {
 
                         } catch (KnxException ex) {
                             log.warn("Unable to call hasChanged()", ex);
-                        } catch (IOException ex) {
+                        } catch (ModbusException ex) {
                             log.warn("Unable to call hasChanged()", ex);
                         }
                         try {
@@ -301,7 +302,7 @@ public final class Modbus2Knx {
 
                         }
 
-                    } catch (IOException ex) {
+                    } catch (ModbusException ex) {
                         ex.printStackTrace();
                     } catch (KnxException ex) {
                         log.error("Error while answering knx request", ex);
