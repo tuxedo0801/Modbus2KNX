@@ -161,7 +161,7 @@ public class ModbusConnection {
         t.start();
     }
 
-    public double readFloat16bit(int addr, int numberOfInputs) throws ModbusException {
+    public synchronized double readFloat16bit(int addr, int numberOfInputs) throws ModbusException {
 
         log.debug("Read ModBus float16 @ " + addr);
 
@@ -183,7 +183,7 @@ public class ModbusConnection {
 
     }
 
-    public int readUnsigned16bit(int address, int numberOfInputs) throws ModbusException {
+    public synchronized int readUnsigned16bit(int address, int numberOfInputs) throws ModbusException {
         log.debug("Read ModBus uint16 @ " + address);
         byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
         ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
@@ -202,7 +202,7 @@ public class ModbusConnection {
 
     }
 
-    public boolean readBoolean(int address, int numberOfInputs) throws ModbusException {
+    public synchronized boolean readBoolean(int address, int numberOfInputs) throws ModbusException {
 
         log.debug("Read ModBus Boolean @ " + address);
 

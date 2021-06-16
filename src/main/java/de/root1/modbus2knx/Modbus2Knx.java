@@ -27,6 +27,7 @@ import de.root1.slicknx.KnxException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import static java.lang.Thread.sleep;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -180,6 +181,7 @@ public final class Modbus2Knx {
         final Map<String, Datapoint> varMap = new HashMap<>();
 
         final List<WatchContainer> watchlist = new ArrayList<>();
+        final List<WatchContainer> watchlistCyclic = new ArrayList<>();
 
         for (Datapoint dpt : dpts) {
             if (dpt.hasUseableKnxData()) {
@@ -196,6 +198,10 @@ public final class Modbus2Knx {
 
                 if (knxData.getSendCyclic() == KnxData.INTERVAL_SENDONUPDATE) {
                     watchlist.add(new WatchContainer(modbus, dpt));
+                } else if (knxData.getSendCyclic() > 0) {
+                    WatchContainer wc = new WatchContainer(modbus, dpt);
+                    wc.setCyclicUpdateTime(knxData.getSendCyclic());
+                    watchlistCyclic.add(wc);
                 }
             }
             varMap.put(dpt.getGroup() + "." + dpt.getName(), dpt);
@@ -203,7 +209,7 @@ public final class Modbus2Knx {
 
         knx = new Knx(knxpa);
 
-        Thread t = new Thread("WatchContainer-Work") {
+        Thread sendOnUpdateThread = new Thread("WatchContainer-SendOnUpdate") {
 
             @Override
             public void run() {
@@ -216,7 +222,7 @@ public final class Modbus2Knx {
                                 Object value = c.getValue();
                                 List<String> gaList = c.getDatapoint().getKnxData().getGaList();
                                 for (String ga : gaList) {
-                                    log.info("{}: Sending value {} to {}", c.getDatapoint().getName(), value, ga);
+                                    log.info("{}: Sending haschanged update value {} to {}", c.getDatapoint().getName(), value, ga);
                                     switch (c.getDatapoint().getType()) {
                                         case bool:
                                             knx.writeBoolean(false, ga, (Boolean) value);
@@ -256,8 +262,64 @@ public final class Modbus2Knx {
             }
 
         };
-        t.setDaemon(true);
-        t.start();
+        sendOnUpdateThread.setDaemon(true);
+        sendOnUpdateThread.start();
+        
+        Thread sendCyclicThread = new Thread("WatchContainer-SendCyclic") {
+
+            @Override
+            public void run() {
+
+                while (true) {
+                    for (WatchContainer c : watchlistCyclic) {
+
+                        try {
+                            if (c.checkCyclicUpdate()) {
+                                Object value = c.getValue();
+                                List<String> gaList = c.getDatapoint().getKnxData().getGaList();
+                                for (String ga : gaList) {
+                                    log.info("{}: Sending cyclicupdate value {} to {}", c.getDatapoint().getName(), value, ga);
+                                    switch (c.getDatapoint().getType()) {
+                                        case bool:
+                                            knx.writeBoolean(false, ga, (Boolean) value);
+                                            break;
+                                        case float16bit:
+                                            knx.write2ByteFloat(false, ga, ((Double) value).floatValue());
+                                            break;
+                                        case unsigned16bit:
+                                            knx.writeDpt7(false, ga, (int) value);
+                                            break;
+
+                                    }
+                                    // sleep after each knx send
+                                    try {
+                                        sleep(150);
+                                    } catch (InterruptedException ex) { /* do nothing */ }
+
+                                } // end of for ga
+                            } // end of if hasChanged 
+
+                        } catch (KnxException ex) {
+                            log.warn("Unable to call hasChanged()", ex);
+                        } catch (ModbusException ex) {
+                            log.warn("Unable to call hasChanged()", ex);
+                        }
+                        try {
+                            sleep(5);
+                        } catch (InterruptedException ex) { /* do nothing */ }
+
+                    } // end of for watch container
+                    // sleep between loop
+                    try {
+                        log.debug("#### Sleep until next round ...");
+                        sleep(100);
+                    } catch (InterruptedException ex) { /* do nothing */ }
+                }
+            }
+
+        };
+        sendCyclicThread.setDaemon(true);
+        sendCyclicThread.start();
 
         knx.setGlobalGroupAddressListener(new GroupAddressListener() {
 

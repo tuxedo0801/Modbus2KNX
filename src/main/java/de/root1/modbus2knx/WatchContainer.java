@@ -35,12 +35,38 @@ public class WatchContainer {
     private Datapoint datapoint;
     private final ModbusConnection modbus;
     private Object value;
+    
+    private long lastUpdate = 0;
+    private int cyclicUpdateTime = 0;
 
 
     WatchContainer(ModbusConnection modbus, Datapoint dpt) {
         this.datapoint = dpt;
         this.modbus = modbus;
     }
+
+    public int getCyclicUpdateTime() {
+        return cyclicUpdateTime;
+    }
+
+    public void setCyclicUpdateTime(int cyclicUpdateTime) {
+        this.cyclicUpdateTime = cyclicUpdateTime;
+    }
+    
+    /**
+     * triggers update if required
+     * @return true, if value has changed, false if not
+     */
+    public boolean checkCyclicUpdate() throws ModbusException {
+        if (System.currentTimeMillis()-lastUpdate>cyclicUpdateTime) {
+            log.info("@@@ Time for cyclic update for {}", datapoint.getName());
+            hasChanged();
+            return true;
+        }
+        return false;
+    }
+    
+    
     
     public boolean hasChanged() throws ModbusException {
         
@@ -59,6 +85,7 @@ public class WatchContainer {
                 x = modbus.readUnsigned16bit(address, numberOfInputs);
                 break;
         }
+        lastUpdate = System.currentTimeMillis();
         if (x!=null && !x.equals(value)) {
             log.info("{} has changed from {} to {}", datapoint.getName(), value, x);
             value = x;
