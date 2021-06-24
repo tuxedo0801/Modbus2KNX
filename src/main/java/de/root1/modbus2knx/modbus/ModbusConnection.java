@@ -168,13 +168,14 @@ public class ModbusConnection {
         byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
 
         ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, addr, numberOfInputs);
+        ModbusResponse resp = null;
         try {
             req.send(outputStream);
+            resp = req.getResponse();
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
         }
-        ModbusResponse resp = req.getResponse();
-        if (resp.crcCheck()) {
+        if (resp != null && resp.crcCheck()) {
             float v = resp.getFloat16();
             return v;
         } else {
@@ -187,14 +188,15 @@ public class ModbusConnection {
         log.debug("Read ModBus uint16 @ " + address);
         byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
         ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
+        ModbusResponse resp = null;
         try {
             req.send(outputStream);
+            resp = req.getResponse();
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
         }
-        ModbusResponse resp = req.getResponse();
 
-        if (resp.crcCheck()) {
+        if (resp != null && resp.crcCheck()) {
             return resp.getUint16();
         } else {
             return -1;
@@ -208,13 +210,14 @@ public class ModbusConnection {
 
         byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1"));
         ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
+        ModbusResponse resp = null;
         try {
             req.send(outputStream);
+            resp = req.getResponse();
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
         }
-        ModbusResponse resp = req.getResponse();
-        if (resp.crcCheck()) {
+        if (resp!=null && resp.crcCheck()) {
             return resp.getBoolean();
         } else {
             return false;
