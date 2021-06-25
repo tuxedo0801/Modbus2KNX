@@ -140,4 +140,9 @@ public class ModbusRequest {
         this.response = response;
     }
 
+    @Override
+    public String toString() {
+        return "ModbusRequest{" + "slaveAddress=" + String.format("0x%02X", slaveAddress) + ", function=" + String.format("0x%02X", function) + ", startAddress=" + startAddress + ", numberOfPoints=" + numberOfPoints + '}';
+    }
+
 }

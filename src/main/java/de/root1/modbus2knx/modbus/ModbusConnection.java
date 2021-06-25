@@ -160,6 +160,13 @@ public class ModbusConnection {
         };
         t.start();
     }
+    
+    private boolean match(ModbusRequest req, ModbusResponse resp) {
+        return resp!=null && 
+                resp.getSlaveAddress() == req.getSlaveAddress() && 
+                resp.getFunction() == req.getFunction() && 
+                resp.crcCheck();
+    }
 
     public synchronized double readFloat16bit(int addr, int numberOfInputs) throws ModbusException {
 
@@ -172,14 +179,14 @@ public class ModbusConnection {
         try {
             req.send(outputStream);
             resp = req.getResponse();
+            if (match(req, resp)) {
+                float v = resp.getFloat16();
+                return v;
+            } else {
+                throw new ModbusException("Response not okay req="+req+ " resp="+resp);
+            }
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
-        }
-        if (resp != null && resp.crcCheck()) {
-            float v = resp.getFloat16();
-            return v;
-        } else {
-            return -1;
         }
 
     }
@@ -192,15 +199,15 @@ public class ModbusConnection {
         try {
             req.send(outputStream);
             resp = req.getResponse();
+            if (match(req, resp)) {
+                return resp.getUint16();
+            } else {
+                throw new ModbusException("Response not okay req="+req+ " resp="+resp);
+            }
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
         }
 
-        if (resp != null && resp.crcCheck()) {
-            return resp.getUint16();
-        } else {
-            return -1;
-        }
 
     }
 
@@ -214,13 +221,13 @@ public class ModbusConnection {
         try {
             req.send(outputStream);
             resp = req.getResponse();
+            if (match(req, resp)) {
+                return resp.getBoolean();
+            } else {
+               throw new ModbusException("Response not okay req="+req+ " resp="+resp);
+            }
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
-        }
-        if (resp!=null && resp.crcCheck()) {
-            return resp.getBoolean();
-        } else {
-            return false;
         }
 
     }

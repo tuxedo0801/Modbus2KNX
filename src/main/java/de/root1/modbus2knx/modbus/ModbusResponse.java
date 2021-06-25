@@ -139,5 +139,7 @@ public class ModbusResponse {
     public String toString() {
         return "ModbusResponse{" + "slaveAddress=" + String.format("0x%02X", slaveAddress) + ", function=" + String.format("0x%02X", function) + ", count=" + count + ", crcOkay=" + crcCheck() + '}';
     }
+    
+    
 
 }
