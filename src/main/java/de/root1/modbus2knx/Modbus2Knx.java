@@ -240,21 +240,45 @@ public final class Modbus2Knx {
                                 List<String> gaList = c.getDatapoint().getKnxData().getGaList();
                                 for (String ga : gaList) {
                                     log.info("{}: Sending haschanged update value {} to {}", c.getDatapoint().getName(), value, ga);
-                                    switch (c.getDatapoint().getType()) {
-                                        case bool:
-                                            knx.writeBoolean(false, ga, (Boolean) value);
+                                    
+                                    String dpt = c.getDatapoint().getKnxData().getDpt();
+                                    if (!dpt.contains(".")) {
+                                        dpt += ".000";
+                                    }
+                                    
+//                                    switch (c.getDatapoint().getType()) {
+//                                        case bool:
+//                                            knx.writeBoolean(false, ga, (Boolean) value);
+//                                            break;
+//                                        case float16bit:
+//                                            knx.write2ByteFloat(false, ga, ((Double) value).floatValue());
+//                                            break;
+//                                        case float32bit:
+//                                            knx.write4ByteFloat(false, ga, ((Double) value).floatValue());
+//                                            break;                                            
+//                                        case unsigned16bit:
+//                                            knx.writeDpt7(false, ga, (int) value);
+//                                            break;
+//
+//                                    }
+                                    switch (dpt) {
+                                        case "1.000":
+                                        case "1.001":
+                                             knx.writeBoolean(false, ga, (Boolean) value);
                                             break;
-                                        case float16bit:
+                                        case "9.000":
+                                        case "9.001":
                                             knx.write2ByteFloat(false, ga, ((Double) value).floatValue());
                                             break;
-                                        case float32bit:
-                                            knx.write4ByteFloat(false, ga, ((Double) value).floatValue());
-                                            break;                                            
-                                        case unsigned16bit:
+                                        case "7.007":
                                             knx.writeDpt7(false, ga, (int) value);
                                             break;
-
-                                    }
+                                        case "13.010":
+                                            knx.writeDpt13(false, ga, ((Double)value).intValue());
+                                        case "16.001":
+                                            break;
+                                    
+                                }
                                     // sleep after each knx send
                                     try {
                                         sleep(150);
