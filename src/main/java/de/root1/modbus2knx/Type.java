@@ -24,6 +24,6 @@ package de.root1.modbus2knx;
  */
 public enum Type {
     
-    float16bit, unsigned16bit, bool, special_6byteintegerstringconcat
+    float16bit, float32bit, unsigned16bit, bool, special_6byteintegerstringconcat
     
 }

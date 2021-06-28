@@ -168,13 +168,15 @@ public class ModbusConnection {
                 resp.crcCheck();
     }
 
-    public synchronized double readFloat16bit(int addr, int numberOfPoints) throws ModbusException {
+    public synchronized double readFloat16bit(int address, int function, int numberOfPoints) throws ModbusException {
 
-        log.debug("Read ModBus float16 @ " + addr);
+        log.debug("Read ModBus float16 @ " + address);
 
-        byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
+        //byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
 
-        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, addr, numberOfPoints);
+        byte fct = (byte) function;
+        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, fct, address, numberOfPoints);
+        
         ModbusResponse resp = null;
         try {
             req.send(outputStream);
@@ -190,11 +192,37 @@ public class ModbusConnection {
         }
 
     }
+    
+    public synchronized double readFloat32bit(int address, int function, int numberOfPoints) throws ModbusException {
 
-    public synchronized int readUnsigned16bit(int address, int numberOfInputs) throws ModbusException {
+        log.debug("Read ModBus float32 @ " + address);
+
+        //byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
+
+        byte fct = (byte) function;
+        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, fct, address, numberOfPoints);
+        
+        ModbusResponse resp = null;
+        try {
+            req.send(outputStream);
+            resp = req.getResponse();
+            if (match(req, resp)) {
+                float v = resp.getFloat32();
+                return v;
+            } else {
+                throw new ModbusException("Response not okay req="+req+ " resp="+resp);
+            }
+        } catch (IOException ex) {
+            throw new ModbusException("Error while sending request", ex);
+        }
+
+    }
+
+    public synchronized int readUnsigned16bit(int address, int function, int numberOfPoints) throws ModbusException {
         log.debug("Read ModBus uint16 @ " + address);
-        byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
-        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
+        //byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
+        byte fct = (byte) function;
+        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, fct, address, numberOfPoints);
         ModbusResponse resp = null;
         try {
             req.send(outputStream);
@@ -211,12 +239,13 @@ public class ModbusConnection {
 
     }
 
-    public synchronized boolean readBoolean(int address, int numberOfInputs) throws ModbusException {
+    public synchronized boolean readBoolean(int address, int function, int numberOfPoints) throws ModbusException {
 
         log.debug("Read ModBus Boolean @ " + address);
 
-        byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1"));
-        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, address, numberOfInputs);
+        //byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.digital.read-coils", "1"));
+        byte fct = (byte) function;
+        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, fct, address, numberOfPoints);
         ModbusResponse resp = null;
         try {
             req.send(outputStream);

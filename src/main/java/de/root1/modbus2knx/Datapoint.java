@@ -31,11 +31,22 @@ public class Datapoint {
     private String group;
     private String name;
     private int address;
+    private int function;
     private int numberOfPoints;
     private Type type;
     private KnxData knxData;
     private final Properties properties = new Properties();
 
+    public int getFunction() {
+        return function;
+    }
+
+    public void setFunction(int function) {
+        this.function = function;
+    }
+
+    
+    
     public int getNumberOfPoints() {
         return numberOfPoints;
     }
@@ -166,7 +177,7 @@ public class Datapoint {
 
     @Override
     public String toString() {
-        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + address + ", numberOfInputs=" + numberOfPoints + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + '}';
+        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + String.format("0x%02X", address) + ", function="+String.format("0x%02X", function)+", numberOfInputs=" + numberOfPoints + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + '}';
     }
 
     
