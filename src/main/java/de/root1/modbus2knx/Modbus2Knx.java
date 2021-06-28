@@ -131,9 +131,9 @@ public final class Modbus2Knx {
                             dpt.setType(Type.valueOf(value));
                             log.info("Setting type: " + dpt);
                             break;
-                        case "numberofinputs":
-                            dpt.setNumberOfInputs(Integer.parseInt(value));
-                            log.info("Setting number of inputs: " + dpt);
+                        case "numberofpoints":
+                            dpt.setNumberOfPoints(Integer.parseInt(value));
+                            log.info("Setting number of points: " + dpt);
                             break;
                         case "knx":
                             dpt.parseKnxDataFromProperties(configdataProperties);
@@ -338,7 +338,7 @@ public final class Modbus2Knx {
 
                             case float16bit:
                                 log.info("Reading modbus for float16..");
-                                double valueF = modbus.readFloat16bit(dpt.getAddress(), dpt.getNumberOfInputs());
+                                double valueF = modbus.readFloat16bit(dpt.getAddress(), dpt.getNumberOfPoints());
                                 log.info("Reading modbus... *done*");
                                 log.info("{}.{}: {}", dpt.getGroup(), dpt.getName(), valueF);
                                 log.info("Writing float to knx ...");
@@ -348,7 +348,7 @@ public final class Modbus2Knx {
                                 break;
 
                             case unsigned16bit:
-                                int valueI = modbus.readUnsigned16bit(dpt.getAddress(), dpt.getNumberOfInputs());
+                                int valueI = modbus.readUnsigned16bit(dpt.getAddress(), dpt.getNumberOfPoints());
                                 log.info("{}.{}: {}", dpt.getGroup(), dpt.getName(), valueI);
 
                                 knx.writeDpt7(true, event.getDestination(), valueI);
@@ -356,7 +356,7 @@ public final class Modbus2Knx {
                                 break;
 
                             case bool:
-                                boolean valueB = modbus.readBoolean(dpt.getAddress(), dpt.getNumberOfInputs());
+                                boolean valueB = modbus.readBoolean(dpt.getAddress(), dpt.getNumberOfPoints());
                                 log.info(dpt.getGroup() + "." + dpt.getName() + ": " + valueB);
                                 knx.writeBoolean(true, event.getDestination(), valueB);
                                 log.info("KNX written boolean");

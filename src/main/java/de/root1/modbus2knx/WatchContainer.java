@@ -71,7 +71,7 @@ public class WatchContainer {
     public boolean hasChanged() throws ModbusException {
         
         int address = datapoint.getAddress();
-        int numberOfInputs = datapoint.getNumberOfInputs();
+        int numberOfInputs = datapoint.getNumberOfPoints();
         Object x = null;
         log.debug("Checking if {} has changed", datapoint.getName());
         switch(datapoint.getType()) {

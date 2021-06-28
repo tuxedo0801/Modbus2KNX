@@ -168,13 +168,13 @@ public class ModbusConnection {
                 resp.crcCheck();
     }
 
-    public synchronized double readFloat16bit(int addr, int numberOfInputs) throws ModbusException {
+    public synchronized double readFloat16bit(int addr, int numberOfPoints) throws ModbusException {
 
         log.debug("Read ModBus float16 @ " + addr);
 
         byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
 
-        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, addr, numberOfInputs);
+        ModbusRequest req = new ModbusRequest(this, modbusSlaveAddress, function, addr, numberOfPoints);
         ModbusResponse resp = null;
         try {
             req.send(outputStream);

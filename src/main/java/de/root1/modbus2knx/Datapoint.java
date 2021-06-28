@@ -31,17 +31,17 @@ public class Datapoint {
     private String group;
     private String name;
     private int address;
-    private int numberOfInputs;
+    private int numberOfPoints;
     private Type type;
     private KnxData knxData;
     private final Properties properties = new Properties();
 
-    public int getNumberOfInputs() {
-        return numberOfInputs;
+    public int getNumberOfPoints() {
+        return numberOfPoints;
     }
 
-    public void setNumberOfInputs(int numberOfInputs) {
-        this.numberOfInputs = numberOfInputs;
+    public void setNumberOfPoints(int numberOfPoints) {
+        this.numberOfPoints = numberOfPoints;
     }
 
     public String getGroup() {
@@ -166,7 +166,7 @@ public class Datapoint {
 
     @Override
     public String toString() {
-        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + address + ", numberOfInputs=" + numberOfInputs + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + '}';
+        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + address + ", numberOfInputs=" + numberOfPoints + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + '}';
     }
 
     
