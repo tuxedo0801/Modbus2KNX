@@ -73,25 +73,26 @@ public class WatchContainer {
         int address = datapoint.getAddress();
         int numberOfInputs = datapoint.getNumberOfPoints();
         int function = datapoint.getFunction();
+        byte modbusSlaveAddress = datapoint.getModbusSlaveAddress();
         Object x = null;
         log.debug("Checking if {} has changed", datapoint.getName());
         switch(datapoint.getType()) {
             case bool:
-                x = modbus.readBoolean(address, function, numberOfInputs);
+                x = modbus.readBoolean(modbusSlaveAddress, address, function, numberOfInputs);
                 break;
             case float16bit:
-                x = modbus.readFloat16bit(address, function, numberOfInputs);
+                x = modbus.readFloat16bit(modbusSlaveAddress, address, function, numberOfInputs);
                 break;
             case float32bit:
-                x = modbus.readFloat32bit(address, function, numberOfInputs);
+                x = modbus.readFloat32bit(modbusSlaveAddress, address, function, numberOfInputs);
                 break;
             case unsigned16bit:
-                x = modbus.readUnsigned16bit(address, function, numberOfInputs);
+                x = modbus.readUnsigned16bit(modbusSlaveAddress, address, function, numberOfInputs);
                 break;
         }
         lastUpdate = System.currentTimeMillis();
         if (x!=null && !x.equals(value)) {
-            log.info("{} has changed from {} to {}", datapoint.getName(), value, x);
+            log.info("{}.{} has changed from {} to {}", datapoint.getGroup(), datapoint.getName(), value, x);
             value = x;
             
             return true;

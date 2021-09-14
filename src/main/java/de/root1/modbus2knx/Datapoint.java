@@ -36,7 +36,16 @@ public class Datapoint {
     private Type type;
     private KnxData knxData;
     private final Properties properties = new Properties();
+    private byte modbusSlaveAddress = 0x01;
 
+    public byte getModbusSlaveAddress() {
+        return modbusSlaveAddress;
+    }
+
+    public void setModbusSlaveAddress(byte modbusSlaveAddress) {
+        this.modbusSlaveAddress = modbusSlaveAddress;
+    }
+    
     public int getFunction() {
         return function;
     }
@@ -44,8 +53,6 @@ public class Datapoint {
     public void setFunction(int function) {
         this.function = function;
     }
-
-    
     
     public int getNumberOfPoints() {
         return numberOfPoints;
@@ -145,10 +152,22 @@ public class Datapoint {
     }
 
     @Override
+    public String toString() {
+        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + address + ", function=" + function + ", numberOfPoints=" + numberOfPoints + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + ", modbusSlaveAddress=" + modbusSlaveAddress + '}';
+    }
+
+    @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 29 * hash + Objects.hashCode(this.group);
-        hash = 29 * hash + Objects.hashCode(this.name);
+        int hash = 7;
+        hash = 17 * hash + Objects.hashCode(this.group);
+        hash = 17 * hash + Objects.hashCode(this.name);
+        hash = 17 * hash + this.address;
+        hash = 17 * hash + this.function;
+        hash = 17 * hash + this.numberOfPoints;
+        hash = 17 * hash + Objects.hashCode(this.type);
+        hash = 17 * hash + Objects.hashCode(this.knxData);
+        hash = 17 * hash + Objects.hashCode(this.properties);
+        hash = 17 * hash + this.modbusSlaveAddress;
         return hash;
     }
 
@@ -164,21 +183,36 @@ public class Datapoint {
             return false;
         }
         final Datapoint other = (Datapoint) obj;
+        if (this.address != other.address) {
+            return false;
+        }
+        if (this.function != other.function) {
+            return false;
+        }
+        if (this.numberOfPoints != other.numberOfPoints) {
+            return false;
+        }
+        if (this.modbusSlaveAddress != other.modbusSlaveAddress) {
+            return false;
+        }
         if (!Objects.equals(this.group, other.group)) {
             return false;
         }
         if (!Objects.equals(this.name, other.name)) {
             return false;
         }
+        if (this.type != other.type) {
+            return false;
+        }
+        if (!Objects.equals(this.knxData, other.knxData)) {
+            return false;
+        }
+        if (!Objects.equals(this.properties, other.properties)) {
+            return false;
+        }
         return true;
     }
 
-    
-
-    @Override
-    public String toString() {
-        return "Datapoint{" + "group=" + group + ", name=" + name + ", address=" + String.format("0x%02X", address) + ", function="+String.format("0x%02X", function)+", numberOfInputs=" + numberOfPoints + ", type=" + type + ", knxData=" + knxData + ", properties=" + properties + '}';
-    }
 
     
     

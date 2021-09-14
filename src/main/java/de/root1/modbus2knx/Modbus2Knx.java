@@ -34,8 +34,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.LogManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +50,7 @@ public final class Modbus2Knx {
     ModbusConnection modbus;
     Properties configdataProperties;
 
-    byte modbusSlaveAddress = 0x01;
+//    byte modbusSlaveAddress = 0x01;
 
     private final String host;
     private final int port;
@@ -67,6 +65,13 @@ public final class Modbus2Knx {
         }
     }
 
+    /**
+     * gets index of the n's occurence of c in str
+     * @param str
+     * @param c
+     * @param n
+     * @return 
+     */
     public static int nthOccurrence(String str, String c, int n) {
         n--;
         int pos = str.indexOf(c, 0);
@@ -77,21 +82,26 @@ public final class Modbus2Knx {
     }
     private final int soTimeout;
 
-    public Modbus2Knx(String file) throws IOException, InterruptedException, KnxException {
+    public Modbus2Knx(String[] filenames) throws IOException, InterruptedException, KnxException {
 
         List<Datapoint> dpts = new ArrayList<>();
-
-        File f = new File(file);
+        
         configdataProperties = new Properties();
-        configdataProperties.load(new FileInputStream(f));
+
+        for (String file : filenames) {
+            log.info("Reading file into properties: {}", file);
+            File f = new File(file);
+            configdataProperties.load(new FileInputStream(f));
+        }
+        
 
         host = configdataProperties.getProperty("modbus.tcp.host", "localhost");
         port = Integer.parseInt(configdataProperties.getProperty("modbus.tcp.port", "8899"));
-        modbusSlaveAddress = (byte) (parseInt(configdataProperties.getProperty("modbus.slaveaddress", "1")) & 0xFF);
+//        modbusSlaveAddress = (byte) (parseInt(configdataProperties.getProperty("modbus.slaveaddress", "1")) & 0xFF);
         knxpa = configdataProperties.getProperty("knx.individualadress", "1.1.1");
         soTimeout = Integer.parseInt(configdataProperties.getProperty("modbus.tcp.sockettimeout", "0"));
 
-        log.info("Settings: knx.ia={} host={} port={} modbusSlaveAddr={}", knxpa, host, port, modbusSlaveAddress);
+        log.info("Settings: knx.ia={} host={} port={}", knxpa, host, port);
 
         Iterator<Object> iterator = configdataProperties.keySet().iterator();
         while (iterator.hasNext()) {
@@ -106,16 +116,23 @@ public final class Modbus2Knx {
                 // skip here
             } else if (key.startsWith("modbus")) {
                 // skip here
-            } else {
+            } else if (isReg(key)){
 
+                log.info("Found reg: {}", key);
                 Datapoint datapoint = new Datapoint();
 
                 // default if non is set afterwards
                 datapoint.setFunction(parseInt(configdataProperties.getProperty("functioncode.analog.read-holding-register", "0x03")));
+                datapoint.setModbusSlaveAddress(getModbusSlaveAddress(key));
 
                 String[] split = key.split("\\.");
-                datapoint.setGroup(split[0]);
-                datapoint.setName(split[1]);
+                
+                String group = split[0];
+                String name = split[2];
+                String split3 = split[3];
+                
+                datapoint.setGroup(group);
+                datapoint.setName(name);
                 boolean alreadyThere = false;
 
                 if (dpts.contains(datapoint)) {
@@ -123,13 +140,11 @@ public final class Modbus2Knx {
                     int i = dpts.indexOf(datapoint);
                     datapoint = dpts.get(i);
                     alreadyThere = true;
-                } else {
-                    log.info("DPT unknown till now: {}", datapoint);
-                }
+                } 
 
                 if (split.length >= 3) {
 
-                    switch (split[2]) {
+                    switch (split3) {
                         case "address":
                             try {
                             datapoint.setAddress(parseInt(value));
@@ -164,12 +179,12 @@ public final class Modbus2Knx {
                     }
                     if (!alreadyThere) {
                         dpts.add(datapoint);
+                        log.info("Finished reading: {}", datapoint);
                     }
 
                 } else {
                     log.warn("Not supported: '" + key + "'");
                 }
-
             }
         }
 
@@ -182,7 +197,7 @@ public final class Modbus2Knx {
         // -----------------------
         // Modbus Connection 
         // -----------------------
-        modbus = new ModbusConnection(host, port, soTimeout, modbusSlaveAddress, configdataProperties);
+        modbus = new ModbusConnection(host, port, soTimeout, configdataProperties);
 
         // -----------------------
         // KNX Connection
@@ -239,7 +254,7 @@ public final class Modbus2Knx {
                                 Object value = c.getValue();
                                 List<String> gaList = c.getDatapoint().getKnxData().getGaList();
                                 for (String ga : gaList) {
-                                    log.info("{}: Sending haschanged update value {} to {}", c.getDatapoint().getName(), value, ga);
+                                    log.info("{}.{}: Sending haschanged update value {} to {}", c.getDatapoint().getGroup(), c.getDatapoint().getName(), value, ga);
                                     
                                     String dpt = c.getDatapoint().getKnxData().getDpt();
                                     if (!dpt.contains(".")) {
@@ -333,7 +348,7 @@ public final class Modbus2Knx {
                                 Object value = c.getValue();
                                 List<String> gaList = c.getDatapoint().getKnxData().getGaList();
                                 for (String ga : gaList) {
-                                    log.info("{}: Sending cyclicupdate value {} to {}", c.getDatapoint().getName(), value, ga);
+                                    log.info("{}.{}: Sending cyclicupdate value {} to {}", c.getDatapoint().getGroup(), c.getDatapoint().getName(), value, ga);
                                     switch (c.getDatapoint().getType()) {
                                         case bool:
                                             knx.writeBoolean(false, ga, (Boolean) value);
@@ -396,7 +411,7 @@ public final class Modbus2Knx {
 
                             case float16bit:
                                 log.info("Reading modbus for float16..");
-                                double valueF = modbus.readFloat16bit(datapoint.getAddress(), datapoint.getFunction(), datapoint.getNumberOfPoints());
+                                double valueF = modbus.readFloat16bit(datapoint.getModbusSlaveAddress(), datapoint.getAddress(), datapoint.getFunction(), datapoint.getNumberOfPoints());
                                 log.info("Reading modbus... *done*");
                                 log.info("{}.{}: {}", datapoint.getGroup(), datapoint.getName(), valueF);
                                 log.info("Writing float to knx ...");
@@ -406,7 +421,7 @@ public final class Modbus2Knx {
                                 break;
 
                             case unsigned16bit:
-                                int valueI = modbus.readUnsigned16bit(datapoint.getAddress(), datapoint.getFunction(), datapoint.getNumberOfPoints());
+                                int valueI = modbus.readUnsigned16bit(datapoint.getModbusSlaveAddress(), datapoint.getAddress(), datapoint.getFunction(), datapoint.getNumberOfPoints());
                                 log.info("{}.{}: {}", datapoint.getGroup(), datapoint.getName(), valueI);
 
                                 knx.writeDpt7(true, event.getDestination(), valueI);
@@ -414,7 +429,7 @@ public final class Modbus2Knx {
                                 break;
 
                             case bool:
-                                boolean valueB = modbus.readBoolean(datapoint.getAddress(), datapoint.getFunction(), datapoint.getNumberOfPoints());
+                                boolean valueB = modbus.readBoolean(datapoint.getModbusSlaveAddress(), datapoint.getAddress(), datapoint.getFunction(), datapoint.getNumberOfPoints());
                                 log.info(datapoint.getGroup() + "." + datapoint.getName() + ": " + valueB);
                                 knx.writeBoolean(true, event.getDestination(), valueB);
                                 log.info("KNX written boolean");
@@ -448,10 +463,32 @@ public final class Modbus2Knx {
         modbus.disconnect();
 
     }
+    
+    private static boolean isReg(String key) {
+        
+        int from = nthOccurrence(key, ".", 1);
+        int to = nthOccurrence(key, ".", 2);
+        System.out.println(key.substring(from+1, to));
+        if (key.substring(from+1, to).equalsIgnoreCase("reg"))
+            return true;
+        
+        return false;
+    }
+    
+    private byte getModbusSlaveAddress(String key) {
+        int to = nthOccurrence(key, ".", 1);
+        String name = key.substring(0, to);
+        System.out.println(name);
+        String newKey = name+".modbus.slaveaddress";
+        byte slaveAddr = Byte.parseByte(configdataProperties.getProperty(newKey, "0x01"));
+        return slaveAddr;
+    }
+
+
 
     public static void main(String[] args) throws IOException, InterruptedException, KnxException {
 
-        new Modbus2Knx(args[0]);
+        new Modbus2Knx(args);
 
     }
 

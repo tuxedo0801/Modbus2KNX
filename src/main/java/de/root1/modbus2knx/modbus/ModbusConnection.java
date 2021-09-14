@@ -58,16 +58,14 @@ public class ModbusConnection {
      * functioncode.analog.write-single-register
      */
     private final Properties configdata;
-    private final byte modbusSlaveAddress;
     private final int soTimeout;
 
     final List<ModbusResponse> responses = new ArrayList<>();
 
-    public ModbusConnection(String host, int port, int soTimeout, byte modbusSlaveAddress, Properties configdata) throws IOException {
+    public ModbusConnection(String host, int port, int soTimeout, Properties configdata) throws IOException {
         this.host = host;
         this.port = port;
         this.soTimeout = soTimeout;
-        this.modbusSlaveAddress = modbusSlaveAddress;
         this.configdata = configdata;
 
         connect();
@@ -173,7 +171,7 @@ public class ModbusConnection {
                 resp.crcCheck();
     }
 
-    public synchronized double readFloat16bit(int address, int function, int numberOfPoints) throws ModbusException {
+    public synchronized double readFloat16bit(byte modbusSlaveAddress, int address, int function, int numberOfPoints) throws ModbusException {
 
         log.debug("Read ModBus float16 @ " + address);
 
@@ -199,7 +197,7 @@ public class ModbusConnection {
 
     }
     
-    public synchronized double readFloat32bit(int address, int function, int numberOfPoints) throws ModbusException {
+    public synchronized double readFloat32bit(byte modbusSlaveAddress, int address, int function, int numberOfPoints) throws ModbusException {
 
         log.debug("Read ModBus float32 @ " + address);
 
@@ -224,7 +222,7 @@ public class ModbusConnection {
 
     }
 
-    public synchronized int readUnsigned16bit(int address, int function, int numberOfPoints) throws ModbusException {
+    public synchronized int readUnsigned16bit(byte modbusSlaveAddress, int address, int function, int numberOfPoints) throws ModbusException {
         log.debug("Read ModBus uint16 @ " + address);
         //byte function = (byte) Integer.parseInt(configdata.getProperty("functioncode.analog.read-holding-register", "3"));
         byte fct = (byte) function;
@@ -245,7 +243,7 @@ public class ModbusConnection {
 
     }
 
-    public synchronized boolean readBoolean(int address, int function, int numberOfPoints) throws ModbusException {
+    public synchronized boolean readBoolean(byte modbusSlaveAddress, int address, int function, int numberOfPoints) throws ModbusException {
 
         log.debug("Read ModBus Boolean @ " + address);
 

@@ -12,7 +12,7 @@
     <logger name="ch.qos.logback" level="ERROR"/>
     <logger name="de.root1.slicknx" level="ERROR"/>
     
-    <logger name="de.root1" level="INFO"/>
+    <logger name="de.root1" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
