@@ -63,8 +63,18 @@ public class ModbusRequest {
             Thread.sleep(5);
         } catch (InterruptedException ex) {
         }
-        outputstream.write(msg);
-        outputstream.flush();
+        try {
+            outputstream.write(msg);
+            outputstream.flush();
+        } catch (IOException ex) {
+            log.warn("Error while sending request", ex);
+            log.info("Doing reconnect...");
+            app.disconnect();
+            app.connect();
+            log.info("done ...");
+            send(app.getOutputstream());
+            return;
+        }
         // modbus safety wait after
         try {
             Thread.sleep(5);

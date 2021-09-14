@@ -114,6 +114,8 @@ public class ModbusConnection {
         log.info("Closing connection ...");
         isConnected = false;
         try {
+            log.info("Stopping thread");
+            responseReadThread.interrupt();
             inputStream.close();
             outputStream.close();
             s.close();
@@ -123,7 +125,9 @@ public class ModbusConnection {
         }
     }
 
-    private void connect() throws IOException {
+    Thread responseReadThread;
+    
+    public void connect() throws IOException {
 
         s = new Socket(host, port);
         s.setSoTimeout(soTimeout);
@@ -134,7 +138,7 @@ public class ModbusConnection {
         log.info("Connected to {}:{}!", host, port);
         isConnected = true;
 
-        Thread t = new Thread("Modbus Response Read Thread"){
+        responseReadThread = new Thread("Modbus Response Read Thread "+System.currentTimeMillis()){
             @Override
             public void run() {
                 while (!interrupted()) {
@@ -155,10 +159,11 @@ public class ModbusConnection {
                         interrupt();
                     }
                 }
+                log.info("ModbusResponseThread: interrupted!");
             }
 
         };
-        t.start();
+        responseReadThread.start();
     }
     
     private boolean match(ModbusRequest req, ModbusResponse resp) {
@@ -189,6 +194,7 @@ public class ModbusConnection {
             }
         } catch (IOException ex) {
             throw new ModbusException("Error while sending request", ex);
+            
         }
 
     }
@@ -259,6 +265,10 @@ public class ModbusConnection {
             throw new ModbusException("Error while sending request", ex);
         }
 
+    }
+
+    OutputStream getOutputstream() {
+        return outputStream;
     }
 
 }

@@ -292,6 +292,14 @@ public final class Modbus2Knx {
                             log.warn("Unable to call hasChanged()", ex);
                         } catch (ModbusException ex) {
                             log.warn("Unable to call hasChanged()", ex);
+                            log.info("Reconnecting...");
+                            modbus.disconnect();
+                            try {
+                                modbus.connect();
+                                log.info("Reconnecting...*done*");
+                            } catch (IOException ex1) {
+                                log.error("Unable to reconnect modbus", ex1);
+                            }
                         }
                         try {
                             sleep(5);
