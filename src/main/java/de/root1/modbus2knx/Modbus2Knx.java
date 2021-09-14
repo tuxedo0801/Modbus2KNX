@@ -245,7 +245,9 @@ public final class Modbus2Knx {
 
             @Override
             public void run() {
-
+                log.info("Watchcontainer size: {}", watchlist.size());
+                if (watchlist.isEmpty()) return;
+                
                 while (true) {
                     for (WatchContainer c : watchlist) {
 
@@ -340,6 +342,9 @@ public final class Modbus2Knx {
             @Override
             public void run() {
 
+                log.info("Cyclic Watchcontainer size: {}", watchlistCyclic.size());
+                if (watchlistCyclic.isEmpty()) return;
+                
                 while (true) {
                     for (WatchContainer c : watchlistCyclic) {
 

@@ -59,7 +59,7 @@ public class WatchContainer {
      */
     public boolean checkCyclicUpdate() throws ModbusException {
         if (System.currentTimeMillis()-lastUpdate>cyclicUpdateTime) {
-            log.info("@@@ Time for cyclic update for {}", datapoint.getName());
+            log.info("@@@ Time for cyclic update for {}.{}", datapoint.getGroup(), datapoint.getName());
             hasChanged();
             return true;
         }
@@ -75,7 +75,7 @@ public class WatchContainer {
         int function = datapoint.getFunction();
         byte modbusSlaveAddress = datapoint.getModbusSlaveAddress();
         Object x = null;
-        log.debug("Checking if {} has changed", datapoint.getName());
+        log.debug("Checking if {}.{} has changed", datapoint.getGroup(), datapoint.getName());
         switch(datapoint.getType()) {
             case bool:
                 x = modbus.readBoolean(modbusSlaveAddress, address, function, numberOfInputs);

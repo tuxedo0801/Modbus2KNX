@@ -104,7 +104,7 @@ public class Datapoint {
 
     void parseKnxDataFromProperties(Properties configdata) {
         Iterator<Object> iterator = configdata.keySet().iterator();
-        String prefix = group+"."+name+".knx.";
+        String prefix = group+".reg."+name+".knx.";
         knxData = new KnxData();
         while (iterator.hasNext()) {
             String key = (String) iterator.next();
@@ -115,7 +115,7 @@ public class Datapoint {
             if (key.startsWith(prefix)) {
                 
                 String[] split = key.split("\\.");
-                switch(split[3]) {
+                switch(split[4]) {
                     case "dpt":
                         knxData.setDpt(value);
                         break;
@@ -158,16 +158,9 @@ public class Datapoint {
 
     @Override
     public int hashCode() {
-        int hash = 7;
-        hash = 17 * hash + Objects.hashCode(this.group);
-        hash = 17 * hash + Objects.hashCode(this.name);
-        hash = 17 * hash + this.address;
-        hash = 17 * hash + this.function;
-        hash = 17 * hash + this.numberOfPoints;
-        hash = 17 * hash + Objects.hashCode(this.type);
-        hash = 17 * hash + Objects.hashCode(this.knxData);
-        hash = 17 * hash + Objects.hashCode(this.properties);
-        hash = 17 * hash + this.modbusSlaveAddress;
+        int hash = 5;
+        hash = 67 * hash + Objects.hashCode(this.group);
+        hash = 67 * hash + Objects.hashCode(this.name);
         return hash;
     }
 
@@ -183,37 +176,14 @@ public class Datapoint {
             return false;
         }
         final Datapoint other = (Datapoint) obj;
-        if (this.address != other.address) {
-            return false;
-        }
-        if (this.function != other.function) {
-            return false;
-        }
-        if (this.numberOfPoints != other.numberOfPoints) {
-            return false;
-        }
-        if (this.modbusSlaveAddress != other.modbusSlaveAddress) {
-            return false;
-        }
         if (!Objects.equals(this.group, other.group)) {
             return false;
         }
         if (!Objects.equals(this.name, other.name)) {
             return false;
         }
-        if (this.type != other.type) {
-            return false;
-        }
-        if (!Objects.equals(this.knxData, other.knxData)) {
-            return false;
-        }
-        if (!Objects.equals(this.properties, other.properties)) {
-            return false;
-        }
         return true;
     }
 
-
-    
     
 }

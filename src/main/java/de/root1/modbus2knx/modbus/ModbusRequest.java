@@ -8,8 +8,6 @@ package de.root1.modbus2knx.modbus;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -55,7 +53,7 @@ public class ModbusRequest {
         msg[5] = (byte) (numberOfPoints & 0xFF);
         insertCRC(msg);
         for (byte b : msg) {
-            log.debug(" => {}", String.format("%02X", b));
+            log.debug(" => {}", String.format("0x%02X", b));
         }
         log.debug(" *DONE*");
         // modbus safety wait before

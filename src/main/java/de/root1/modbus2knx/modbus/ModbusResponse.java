@@ -32,7 +32,7 @@ public class ModbusResponse {
      * @param inputStream
      */
     public ModbusResponse(InputStream inputStream) throws IOException {
-        log.debug("Reading response ...");
+        log.debug("Reading/waiting for response from stream...");
         slaveAddress = (byte) inputStream.read();
         log.debug(" SlaveAddress = "+String.format("0x%02X", slaveAddress));
         function = (byte) inputStream.read();
